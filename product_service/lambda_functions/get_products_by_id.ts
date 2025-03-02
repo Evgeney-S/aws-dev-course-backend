@@ -40,9 +40,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     console.log('Starting to fetch all products and stocks');
 
-    const productParam = event.pathParameters?.productId;
-    const productId = Number(productParam);
-
+    const productId = event.pathParameters?.productId;
 
     if (!productId) {
       return {
