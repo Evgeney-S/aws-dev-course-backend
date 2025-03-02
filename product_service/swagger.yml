@@ -46,8 +46,8 @@ paths:
           in: path
           required: true
           schema:
-            type: number
-            example: 1
+            type: string
+            example: 7b888f27-d346-422f-9c5d-d4255335a19b
       responses:
         '200':
           description: Product details
@@ -65,7 +65,7 @@ components:
       type: object
       properties:
         id:
-          type: number
+          type: string
         title:
           type: string
         description:

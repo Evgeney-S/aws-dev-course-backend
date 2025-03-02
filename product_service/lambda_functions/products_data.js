@@ -1,12 +1,7 @@
-export interface Product {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    count: number;
-  }
-  
-  export const products: Product[] = [
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.products = void 0;
+exports.products = [
     {
         id: "7b888f27-d346-422f-9c5d-d4255335a19b",
         title: "Product 1",
@@ -36,4 +31,3 @@ export interface Product {
         count: 40,
     },
 ];
-  
