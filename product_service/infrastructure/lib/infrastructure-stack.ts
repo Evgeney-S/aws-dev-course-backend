@@ -26,7 +26,8 @@ export class InfrastructureStack extends cdk.Stack {
     const getProductsList = new lambda.Function(this, 'getProductsList', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'get_products_list.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
+      // code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'functions.zip')),
       environment: {
         PRODUCTS_TABLE: productsTable.tableName,
         STOCKS_TABLE: stocksTable.tableName
@@ -36,7 +37,8 @@ export class InfrastructureStack extends cdk.Stack {
     const getProductsById = new lambda.Function(this, 'getProductsById', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'get_products_by_id.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
+      // code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'functions.zip')),
       environment: {
         PRODUCTS_TABLE: productsTable.tableName,
         STOCKS_TABLE: stocksTable.tableName
@@ -46,7 +48,8 @@ export class InfrastructureStack extends cdk.Stack {
     const createProduct = new lambda.Function(this, 'createProduct', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'create_product.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
+      // code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'functions.zip')),
       environment: {
           PRODUCTS_TABLE: productsTable.tableName,
           STOCKS_TABLE: stocksTable.tableName
