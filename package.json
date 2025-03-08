@@ -4,12 +4,13 @@
   "private": true,
   "description": "AWS Development Course Backend",
   "scripts": {
-        "build": "tsc",
+    "build": "tsc",
     "build:watch": "tsc -w"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.758.0",
-    "@aws-sdk/lib-dynamodb": "^3.758.0"
+    "@aws-sdk/lib-dynamodb": "^3.758.0",
+    "csv-parser": "^3.2.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.130",
