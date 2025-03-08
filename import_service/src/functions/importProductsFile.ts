@@ -38,10 +38,13 @@ export const handler = async (event: APIGatewayProxyEvent) => {
 
     return {
       statusCode: 200,
-      body: signedUrl,
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Content-Type': 'text/plain'
+      },
+      body: signedUrl
     };
   } catch (error) {
     console.error('Error:', error);

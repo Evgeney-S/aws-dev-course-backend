@@ -39,14 +39,15 @@ export class AWSDevCourseImportService extends cdk.Stack {
         }
     });
 
-    uploadBucket.grantRead(importFileParser);
+    uploadBucket.grantReadWrite(importFileParser);
     
     
     // Create API Gateway
     const api = new apigateway.RestApi(this, 'ImportServiceApi', {
         defaultCorsPreflightOptions: {
             allowOrigins: apigateway.Cors.ALL_ORIGINS,
-            allowMethods: apigateway.Cors.ALL_METHODS
+            allowMethods: apigateway.Cors.ALL_METHODS,
+            allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key']
         }
     });
 
