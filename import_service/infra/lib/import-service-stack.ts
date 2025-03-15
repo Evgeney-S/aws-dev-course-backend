@@ -4,6 +4,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
 
@@ -14,6 +15,17 @@ export class AWSDevCourseImportService extends cdk.Stack {
 
     // Reference existing S3 bucket
     const uploadBucket = s3.Bucket.fromBucketName(this, 'ImportServiceBucket', 'aws-dev-course-import-service');
+    // Reference existing SQS queue (in product_service stack)
+    const catalogItemsQueue = sqs.Queue.fromQueueAttributes(
+        this, 
+        'CatalogItemsQueue', 
+        {
+            queueName: 'catalogItemsQueue',
+            queueArn: `arn:aws:sqs:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:catalogItemsQueue`
+        }
+    );
+    
+      
 
     // importProductsFile Lambda function
     const importProductsFile = new NodejsFunction(this, 'ImportProductsFile', {
@@ -21,8 +33,8 @@ export class AWSDevCourseImportService extends cdk.Stack {
         handler: 'handler',
         entry: path.join(__dirname, '../../src/functions/importProductsFile.ts'),
         environment: {
-        BUCKET_NAME: uploadBucket.bucketName,
-        UPLOAD_FOLDER: 'uploaded'
+            BUCKET_NAME: uploadBucket.bucketName,
+            UPLOAD_FOLDER: 'uploaded'
         }
     });
 
@@ -35,11 +47,18 @@ export class AWSDevCourseImportService extends cdk.Stack {
         handler: 'handler',
         entry: path.join(__dirname, '../../src/functions/importFileParser.ts'),
         environment: {
-            BUCKET_NAME: uploadBucket.bucketName
+            BUCKET_NAME: uploadBucket.bucketName,
+            SQS_QUEUE_URL: catalogItemsQueue.queueUrl
         }
     });
 
     uploadBucket.grantReadWrite(importFileParser);
+    // Grant SQS permissions to the Lambda
+    importFileParser.addToRolePolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['sqs:SendMessage'],
+        resources: [catalogItemsQueue.queueArn]
+    }));
     
     
     // Create API Gateway
