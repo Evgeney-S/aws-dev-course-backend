@@ -108,7 +108,7 @@ export class InfrastructureStack extends cdk.Stack {
     const catalogBatchProcess = new lambda.Function(this, 'catalogBatchProcess', {
         runtime: lambda.Runtime.NODEJS_18_X,
         handler: 'catalog_batch_process.handler',
-        code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'functions.zip')),
+        code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda_functions/functions.zip')),
         environment: {
             PRODUCTS_TABLE: productsTable.tableName,
             STOCKS_TABLE: stocksTable.tableName,
