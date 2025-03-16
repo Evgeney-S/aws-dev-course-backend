@@ -9,6 +9,9 @@ import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -31,8 +34,7 @@ export class InfrastructureStack extends cdk.Stack {
     const getProductsList = new lambda.Function(this, 'getProductsList', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'get_products_list.handler',
-      // code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
-      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'functions.zip')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda_functions/functions.zip')),
       environment: {
         PRODUCTS_TABLE: productsTable.tableName,
         STOCKS_TABLE: stocksTable.tableName
@@ -42,8 +44,7 @@ export class InfrastructureStack extends cdk.Stack {
     const getProductsById = new lambda.Function(this, 'getProductsById', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'get_products_by_id.handler',
-      // code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
-      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'functions.zip')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda_functions/functions.zip')),
       environment: {
         PRODUCTS_TABLE: productsTable.tableName,
         STOCKS_TABLE: stocksTable.tableName
@@ -53,8 +54,7 @@ export class InfrastructureStack extends cdk.Stack {
     const createProduct = new lambda.Function(this, 'createProduct', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'create_product.handler',
-      // code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'dist')),
-      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda_functions', 'functions.zip')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda_functions/functions.zip')),
       environment: {
           PRODUCTS_TABLE: productsTable.tableName,
           STOCKS_TABLE: stocksTable.tableName
@@ -83,13 +83,19 @@ export class InfrastructureStack extends cdk.Stack {
     cdk.Tags.of(createProductTopic).add('project', 'aws-dev-course');
 
     // Add email subscription for all products
+    if (!process.env.MAIN_EMAIL) {
+        throw new Error('MAIN_EMAIL environment variable is required');
+    }
     createProductTopic.addSubscription(
-        new subscriptions.EmailSubscription('esx1504@gmail.com')
+        new subscriptions.EmailSubscription(process.env.MAIN_EMAIL)
     );
 
     // Add filtered subscription for expensive products
+    if (!process.env.EXTRA_EMAIL) {
+        throw new Error('EXTRA_EMAIL environment variable is required');
+    }
     createProductTopic.addSubscription(
-        new subscriptions.EmailSubscription('evgeney.s@mail.ru', {
+        new subscriptions.EmailSubscription(process.env.EXTRA_EMAIL, {
             filterPolicy: {
                 price: sns.SubscriptionFilter.numericFilter({
                     greaterThan: 100
