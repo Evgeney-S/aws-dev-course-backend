@@ -112,7 +112,8 @@ export class InfrastructureStack extends cdk.Stack {
     
     // Add SQS event source to Lambda
     catalogBatchProcess.addEventSource(new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
-        batchSize: 5
+        batchSize: 5,
+        reportBatchItemFailures: true
     }));
 
     catalogBatchProcess.addToRolePolicy(new iam.PolicyStatement({
