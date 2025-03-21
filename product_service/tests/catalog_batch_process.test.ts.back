@@ -1,0 +1,246 @@
+import { SQSEvent } from 'aws-lambda';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+import { handler } from '../lambda_functions/catalog_batch_process';
+import { Mock } from 'jest-mock';
+
+// Create mock functions
+const mockDDBSend = jest.fn();
+const mockSNSPublish = jest.fn();
+
+// Mock the modules
+jest.mock('@aws-sdk/client-dynamodb', () => ({
+    DynamoDBClient: jest.fn()
+}));
+
+jest.mock('@aws-sdk/lib-dynamodb', () => ({
+    DynamoDBDocumentClient: {
+        from: jest.fn()
+    },
+    TransactWriteCommand: jest.fn(params => params)
+}));
+
+jest.mock('@aws-sdk/client-sns', () => ({
+    SNSClient: jest.fn(),
+    PublishCommand: jest.fn(params => params)
+}));
+
+// Mock the actual implementation file
+jest.mock('../lambda_functions/catalog_batch_process', () => {
+    const originalModule = jest.requireActual('../lambda_functions/catalog_batch_process');
+    
+    // Override the DynamoDB and SNS clients
+    const mockDocClient = {
+        send: mockDDBSend
+    };
+    const mockSNSClient = {
+        send: mockSNSPublish
+    };
+
+    DynamoDBDocumentClient.from = jest.fn().mockReturnValue(mockDocClient);
+    SNSClient.prototype.send = mockSNSPublish;
+
+    return {
+        ...originalModule,
+        handler: originalModule.handler
+    };
+});
+
+describe('catalogBatchProcess', () => {
+    const mockEnv = {
+        PRODUCTS_TABLE: 'test-products',
+        STOCKS_TABLE: 'test-stocks',
+        SNS_TOPIC_ARN: 'test-topic-arn',
+        AWS_REGION: 'eu-north-1'
+    };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        process.env = { ...mockEnv };
+
+        // Reset mock implementations
+        mockDDBSend.mockReset();
+        mockSNSPublish.mockReset();
+
+        // Default successful responses
+        mockDDBSend.mockResolvedValue({});
+        mockSNSPublish.mockResolvedValue({});
+    });
+
+    it('should process valid products from SQS event', async () => {
+        // Arrange
+        const testEvent: SQSEvent = {
+            Records: [
+                {
+                    body: JSON.stringify({
+                        title: 'Test Product',
+                        description: 'Test Description',
+                        price: 100,
+                        count: 5
+                    }),
+                    messageId: '1',
+                    receiptHandle: '',
+                    attributes: {
+                        ApproximateReceiveCount: '',
+                        SentTimestamp: '',
+                        SenderId: '',
+                        ApproximateFirstReceiveTimestamp: ''
+                    },
+                    messageAttributes: {},
+                    md5OfBody: '',
+                    eventSource: '',
+                    eventSourceARN: '',
+                    awsRegion: ''
+                }
+            ]
+        };
+
+        // Act
+        await handler(testEvent);
+
+        // Assert
+        expect(mockDDBSend).toHaveBeenCalledTimes(1);
+        expect(mockSNSPublish).toHaveBeenCalledTimes(1);
+
+        expect(mockDDBSend).toHaveBeenCalledWith(
+            expect.objectContaining({
+                TransactItems: expect.arrayContaining([
+                    expect.objectContaining({
+                        Put: expect.objectContaining({
+                            TableName: 'test-products'
+                        })
+                    }),
+                    expect.objectContaining({
+                        Put: expect.objectContaining({
+                            TableName: 'test-stocks'
+                        })
+                    })
+                ])
+            })
+        );
+    });
+
+    it('should handle multiple products in batch', async () => {
+        // Arrange
+        const testEvent: SQSEvent = {
+            Records: [
+                {
+                    body: JSON.stringify({
+                        title: 'Product 1',
+                        description: 'Description 1',
+                        price: 100,
+                        count: 5
+                    }),
+                    messageId: '1',
+                    receiptHandle: '',
+                    attributes: {
+                        ApproximateReceiveCount: '',
+                        SentTimestamp: '',
+                        SenderId: '',
+                        ApproximateFirstReceiveTimestamp: ''
+                    },
+                    messageAttributes: {},
+                    md5OfBody: '',
+                    eventSource: '',
+                    eventSourceARN: '',
+                    awsRegion: ''
+                },
+                {
+                    body: JSON.stringify({
+                        title: 'Product 2',
+                        description: 'Description 2',
+                        price: 200,
+                        count: 10
+                    }),
+                    messageId: '2',
+                    receiptHandle: '',
+                    attributes: {
+                        ApproximateReceiveCount: '',
+                        SentTimestamp: '',
+                        SenderId: '',
+                        ApproximateFirstReceiveTimestamp: ''
+                    },
+                    messageAttributes: {},
+                    md5OfBody: '',
+                    eventSource: '',
+                    eventSourceARN: '',
+                    awsRegion: ''
+                }
+            ]
+        };
+
+        // Act
+        await handler(testEvent);
+
+        // Assert
+        expect(mockDDBSend).toHaveBeenCalledTimes(2);
+        expect(mockSNSPublish).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle DynamoDB errors', async () => {
+        // Arrange
+        mockDDBSend.mockRejectedValueOnce(new Error('DynamoDB error'));
+
+        const testEvent: SQSEvent = {
+            Records: [
+                {
+                    body: JSON.stringify({
+                        title: 'Test Product',
+                        description: 'Test Description',
+                        price: 100,
+                        count: 5
+                    }),
+                    messageId: '1',
+                    receiptHandle: '',
+                    attributes: {
+                        ApproximateReceiveCount: '',
+                        SentTimestamp: '',
+                        SenderId: '',
+                        ApproximateFirstReceiveTimestamp: ''
+                    },
+                    messageAttributes: {},
+                    md5OfBody: '',
+                    eventSource: '',
+                    eventSourceARN: '',
+                    awsRegion: ''
+                }
+            ]
+        };
+
+        // Act & Assert
+        await expect(handler(testEvent)).rejects.toThrow('DynamoDB error');
+        expect(mockSNSPublish).not.toHaveBeenCalled();
+    });
+
+    it('should handle invalid JSON in SQS message', async () => {
+        const testEvent: SQSEvent = {
+            Records: [
+                {
+                    body: 'invalid json',
+                    messageId: '1',
+                    receiptHandle: '',
+                    attributes: {
+                        ApproximateReceiveCount: '',
+                        SentTimestamp: '',
+                        SenderId: '',
+                        ApproximateFirstReceiveTimestamp: ''
+                    },
+                    messageAttributes: {},
+                    md5OfBody: '',
+                    eventSource: '',
+                    eventSourceARN: '',
+                    awsRegion: ''
+                }
+            ]
+        };
+
+        await expect(handler(testEvent)).rejects.toThrow();
+        expect(mockDDBSend).not.toHaveBeenCalled();
+        expect(mockSNSPublish).not.toHaveBeenCalled();
+    });
+
+    afterEach(() => {
+        jest.resetAllMocks();
+    });
+});
