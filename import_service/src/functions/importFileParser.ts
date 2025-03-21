@@ -1,8 +1,10 @@
 import { S3Event } from 'aws-lambda';
 import { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import csvParser from 'csv-parser';
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
+const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event: S3Event) => {
   try {
@@ -25,9 +27,15 @@ export const handler = async (event: S3Event) => {
         let hasError = false;
 
         const parser = csvParser()
-          .on('data', (data: Record<string, unknown>) => {
+          .on('data', async (data: Record<string, unknown>) => {
             try {
-              console.log('Parsed CSV row:', JSON.stringify(data));
+
+                 // Send message to SQS
+                await sqsClient.send(new SendMessageCommand({
+                    QueueUrl: process.env.SQS_QUEUE_URL,
+                    MessageBody: JSON.stringify(data)
+                }));
+
             } catch (error) {
               hasError = true;
               parser.destroy(error as Error);
