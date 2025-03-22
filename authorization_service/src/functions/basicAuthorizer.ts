@@ -9,7 +9,7 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
 
     try {
         const encodedCreds = event.authorizationToken.split(' ')[1];
-        const plainCreds = Buffer.from(encodedCreds, 'base64').toString().split(':');
+        const plainCreds = Buffer.from(encodedCreds, 'base64').toString().split('=');
         const username = plainCreds[0];
         const password = plainCreds[1];
 
