@@ -195,4 +195,4 @@ setInterval(() => {
     if (expiredCount > 0) {
         console.log(`[Cache] Очищено ${expiredCount} устаревших кэшей. Размер кэша: ${requestsCache.size}`);
     }
-}, 2*60*1000); 
+}, 2*60*1000);
